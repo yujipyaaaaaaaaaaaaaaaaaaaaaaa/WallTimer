@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(PathPlanningTest VERSION 0.1.0)
+project(WallTimer VERSION 0.1.0)
 
 find_package(OpenCV REQUIRED)
 
@@ -10,3 +10,4 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2 -s -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g3 -Og -pg")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -s -DNDEBUG -march=native")
 
+add_executable(WallTimerTest test/test.cpp)
