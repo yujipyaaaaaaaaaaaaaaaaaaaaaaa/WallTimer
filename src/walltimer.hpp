@@ -8,29 +8,36 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 class WallTimer{
 private:
-  static WallTimer *wt;
+  static std::unique_ptr<WallTimer> wt;
 
   std::vector<std::chrono::system_clock::time_point> rapTime;
   std::map<std::string, std::vector<std::chrono::system_clock::time_point>> funcTime;
-  WallTimer(){ }
+  WallTimer(){}
 
 public:
-  ~WallTimer(){
-    if(wt != nullptr)
-    {
-      delete wt;
-    }
-  }
+  WallTimer(const WallTimer &) = delete;
+  WallTimer & operator=(const WallTimer &) = delete;
+  WallTimer(WallTimer &&) = delete;
+  WallTimer & operator=(WallTimer &&) = delete;
 
+
+  // 最後に出力する
+  ~WallTimer()
+  {
+    std::cout << "destruction" << std::endl;
+    OutputFuncTime();
+    OutputRapTime();
+  }
   // get singlton instance
   static WallTimer & GetInstance()
   {
     if(wt == nullptr)
     {
-      wt = new WallTimer();
+      wt = std::unique_ptr<WallTimer>(new WallTimer());
     }
     return *wt;
   }
@@ -79,11 +86,9 @@ public:
         total += count;
         ++called;
       }
-      ost << "function name, " << func.first << ", total, " << total << ", called, " << called << ", average, " << total / called << std::endl;
+      ost << "FunctionName, " << func.first << ", total, " << total << ", called, " << called << ", average, " << total / called << std::endl;
     }
 
-
-    ost << std::endl;
     std::string outstr = ost.str();
     std::cout << outstr;
     if(filename != ""){
@@ -103,6 +108,7 @@ public:
   void OutputRapTime(std::string filename="")
   {
     std::ostringstream ost;
+    ost << "RapTime, ";
     for (size_t i = 1; i < rapTime.size(); ++i) {
       auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i - 0] - rapTime[i - 1]).count();
       ost << count << ",";
@@ -120,7 +126,7 @@ public:
   }
 
 };
-WallTimer *WallTimer::wt = nullptr;
+std::unique_ptr<WallTimer> WallTimer::wt = nullptr;
 
 class FuncTimer{
 private:
@@ -139,5 +145,7 @@ public:
 
 #define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__);
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
+#define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
+#define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
 
 #endif // _WALL_TIMER_HPP_
