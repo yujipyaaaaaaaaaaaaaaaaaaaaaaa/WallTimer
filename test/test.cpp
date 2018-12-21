@@ -11,7 +11,6 @@ void test1()
 
 void test2()
 {
-  // ; is not needed, but put.
   FUNC_TIMER;
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
@@ -27,11 +26,11 @@ int main()
     {
       timer.ClearRapTime();
 
-      WallTimer::GetInstance().RapTimeStack();
+      timer.RapTimeStack();
       test1();
       RAP_TIMER;
       test2();
-      WallTimer::GetInstance().RapTimeStack();
+      timer.RapTimeStack();
 
       std::cout << "trial:" << i << "-" << j << std::endl;
       // instance access
