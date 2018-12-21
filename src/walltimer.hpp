@@ -2,13 +2,15 @@
 #define _WALL_TIMER_HPP_
 
 #include <chrono>
-#include <map>
 #include <fstream>
+#include <map>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <vector>
 #include <memory>
+// #define __USE_GNU
+// #include <dlfcn.h>
 
 class WallTimer{
 private:
@@ -28,6 +30,7 @@ public:
   // 最後に出力する
   ~WallTimer()
   {
+    __builtin_return_address(0);
     std::cout << "destruction" << std::endl;
     OutputFuncTime();
     OutputRapTime();
@@ -143,6 +146,10 @@ public:
   }
 };
 
+// #define FUNC_TIMER std::cout << __builtin_return_address(0) << std::endl;;\
+//                    Dl_info info;\
+//                    dladdr(__builtin_return_address(0), &info);\
+//                    auto temp8234901684 = FuncTimer(__FUNCTION__);
 #define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__);
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
