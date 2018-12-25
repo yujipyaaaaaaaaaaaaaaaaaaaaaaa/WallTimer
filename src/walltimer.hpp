@@ -84,7 +84,6 @@ private:
     {
       endPC = end_pc;
       endTime.push_back(std::chrono::system_clock::now());
-      std::cout << endTime.size() << "," << startTime.size() << std::endl;
       auto aaa = endTime.back() - startTime.back();
       diffTime.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(endTime.back() - startTime.back()).count());
     }
