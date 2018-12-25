@@ -9,8 +9,6 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-// #define __USE_GNU
-// #include <dlfcn.h>
 
 class WallTimer{
 private:
@@ -86,8 +84,11 @@ private:
     {
       endPC = end_pc;
       endTime.push_back(std::chrono::system_clock::now());
+      std::cout << endTime.size() << "," << startTime.size() << std::endl;
       auto aaa = endTime.back() - startTime.back();
       diffTime.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(endTime.back() - startTime.back()).count());
+
+      std::cout << "bbb" << std::endl;
     }
 
     std::string OutputBase()
@@ -105,9 +106,9 @@ private:
           << ",average:" << total / called
           << ",total:" << total
           << ",called:" << called
-          << "," << startPC
-          << "," << endPC
-          << "," << returnPC
+          // << "," << startPC
+          // << "," << endPC
+          // << "," << returnPC
           << std::endl;
 
       return ost.str();
@@ -243,18 +244,24 @@ std::unique_ptr<WallTimer> WallTimer::wt = nullptr;
 class FuncTimer{
 private:
   FuncTimer() = delete;
-  uint64_t startPC;
+  uint64_t returnPC;
 
 public:
-  FuncTimer(const std::string &func_name, const uint64_t &return_pc){
-    startPC = (uint64_t) __builtin_return_address(0);
-    WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
-  }
-  ~FuncTimer(){
-    uint64_t endPC = (uint64_t) __builtin_return_address(0);
-    WallTimer::GetInstance().EndFuncTime(startPC, endPC);
-  }
+  FuncTimer(const std::string &func_name, const uint64_t &return_pc);
+  ~FuncTimer();
 };
+// inline展開を防ぐためにクラス外定義をする
+FuncTimer::FuncTimer(const std::string &func_name, const uint64_t &return_pc){
+  uint64_t startPC = (uint64_t) __builtin_return_address(0);
+  returnPC = return_pc;
+  WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
+}
+FuncTimer::~FuncTimer(){
+  uint64_t endPC = (uint64_t) __builtin_return_address(0);
+  auto &func = WallTimer::GetInstance();
+  func.EndFuncTime(returnPC, endPC);
+}
+
 
 #define FUNC_TIMER \
                 uint64_t returnPC128473801 = (uint64_t)__builtin_return_address(0);\
