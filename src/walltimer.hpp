@@ -93,21 +93,25 @@ private:
       std::ostringstream ost;
       uint64_t total = 0;
       uint32_t called = 0;
-      for(const auto &c : diffTime){
+      for(const auto &c : diffTime)
+      {
         total += c;
         ++called;
       }
-      ost << "FunctionName:" << funcName
-          << ",ReturnFunctionName:" << returnFuncName
-          << ",time:" << diffTime.back()
-          << ",average:" << total / called
-          << ",total:" << total
-          << ",called:" << called
-          // << "," << startPC
-          // << "," << endPC
-          // << "," << returnPC
-          << std::endl;
 
+      if(called > 0)
+      {
+        ost << "FunctionName:" << funcName
+            << ",ReturnFunctionName:" << returnFuncName
+            << ",time:" << diffTime.back()
+            << ",average:" << total / called
+            << ",total:" << total
+            << ",called:" << called
+            // << "," << startPC
+            // << "," << endPC
+            // << "," << returnPC
+            << std::endl;
+      }
       return ost.str();
     }
 
@@ -185,9 +189,9 @@ public:
       funcTime.insert(std::make_pair(return_pc, fl));
     }
   }
-  void EndFuncTime(const uint64_t &start_pc, const uint64_t &end_pc)
+  void EndFuncTime(const uint64_t &return_pc, const uint64_t &end_pc)
   {
-      funcTime[start_pc].EndLogger(end_pc);
+      funcTime[return_pc].EndLogger(end_pc);
   }
 
   void OutputFuncTime(std::string filename="")
@@ -263,6 +267,8 @@ FuncTimer::~FuncTimer(){
 #define FUNC_TIMER \
                 uint64_t returnPC128473801 = (uint64_t)__builtin_return_address(0);\
                 auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
+#define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
+#define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
 #define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
