@@ -17,6 +17,7 @@ void test2()
 
 int main()
 {
+  FUNC_TIMER;
   std::cout << "start" << std::endl;
   for(int i = 0; i < 2; ++i)
   {
