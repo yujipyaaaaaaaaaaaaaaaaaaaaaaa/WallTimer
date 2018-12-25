@@ -101,10 +101,13 @@ private:
       }
       ost << "FunctionName:" << funcName
           << ",ReturnFunctionName:" << returnFuncName
-          << ",Time:" << diffTime.back()
+          << ",time:" << diffTime.back()
+          << ",average:" << total / called
           << ",total:" << total
           << ",called:" << called
-          << ",average:" << total / called
+          << "," << startPC
+          << "," << endPC
+          << "," << returnPC
           << std::endl;
 
       return ost.str();
@@ -248,11 +251,14 @@ public:
     WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
   }
   ~FuncTimer(){
-    WallTimer::GetInstance().EndFuncTime(startPC, (uint64_t) __builtin_return_address(0));
+    uint64_t endPC = (uint64_t) __builtin_return_address(0);
+    WallTimer::GetInstance().EndFuncTime(startPC, endPC);
   }
 };
 
-#define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__, (uint64_t)__builtin_return_address(0));
+#define FUNC_TIMER \
+                uint64_t returnPC128473801 = (uint64_t)__builtin_return_address(0);\
+                auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
 #define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
