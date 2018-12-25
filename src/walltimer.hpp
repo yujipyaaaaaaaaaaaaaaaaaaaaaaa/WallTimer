@@ -87,8 +87,6 @@ private:
       std::cout << endTime.size() << "," << startTime.size() << std::endl;
       auto aaa = endTime.back() - startTime.back();
       diffTime.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(endTime.back() - startTime.back()).count());
-
-      std::cout << "bbb" << std::endl;
     }
 
     std::string OutputBase()
