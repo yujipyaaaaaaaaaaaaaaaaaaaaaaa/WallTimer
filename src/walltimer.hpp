@@ -14,11 +14,126 @@
 
 class WallTimer{
 private:
-  static std::unique_ptr<WallTimer> wt;
+  class funcLogger
+  {
+  private:
+    std::string funcName;
+    std::string returnFuncName;
+    uint64_t startPC;
+    uint64_t endPC;
+    uint64_t returnPC;
+    std::vector<std::chrono::system_clock::time_point> startTime;
+    std::vector<std::chrono::system_clock::time_point> endTime;
+    std::vector<uint64_t> diffTime;
+    bool returnFuncSearched;
 
+  // setter and getter
+  public:
+    const std::string & FuncName() const { return funcName; }
+    const uint64_t & StartPC() const { return startPC; }
+    const uint64_t & EndPC() const { return endPC; }
+    const uint64_t & ReturnPC() const { return returnPC; }
+
+    const bool & ReturnFuncSearched() { return returnFuncSearched; }
+
+    // is this setter?
+    void ReturnFunc(std::string func_name)
+    {
+      returnFuncName = func_name;
+      returnFuncSearched = true;
+    }
+
+  public:
+    funcLogger()
+    {
+      funcName = "unknown";
+      returnFuncName = "unknown";
+      startPC = 0; endPC = 0; returnPC = 0;
+      startTime.clear();
+      endTime.clear();
+      diffTime.clear();
+      returnFuncSearched = false;
+    }
+
+    funcLogger(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc)
+    : funcLogger()
+    {
+      StartLogger(func, start_pc, return_pc);
+      returnFuncName = "unknown";
+    }
+
+    ~funcLogger()
+    {
+      startTime.clear();
+      endTime.clear();
+      diffTime.clear();
+    }
+
+    void StartLogger(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc)
+    {
+      funcName = func;
+      startPC = start_pc;
+      returnPC = return_pc;
+      StartLogger();
+    }
+
+    void StartLogger()
+    {
+      startTime.push_back(std::chrono::system_clock::now());
+    }
+
+    void EndLogger(const uint64_t &end_pc)
+    {
+      endPC = end_pc;
+      endTime.push_back(std::chrono::system_clock::now());
+      auto aaa = endTime.back() - startTime.back();
+      diffTime.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(endTime.back() - startTime.back()).count());
+    }
+
+    std::string OutputBase()
+    {
+      std::ostringstream ost;
+      uint64_t total = 0;
+      uint32_t called = 0;
+      for(const auto &c : diffTime){
+        total += c;
+        ++called;
+      }
+      ost << "FunctionName:" << funcName
+          << ",ReturnFunctionName:" << returnFuncName
+          << ",Time:" << diffTime.back()
+          << ",total:" << total
+          << ",called:" << called
+          << ",average:" << total / called
+          << std::endl;
+
+      return ost.str();
+    }
+
+  };
+
+  static std::unique_ptr<WallTimer> wt;
   std::vector<std::chrono::system_clock::time_point> rapTime;
-  std::map<std::string, std::vector<std::chrono::system_clock::time_point>> funcTime;
+  std::map<uint64_t, funcLogger> funcTime;
   WallTimer(){}
+
+  void parentFunctionMatching()
+  {
+    for(auto &ft : funcTime){
+      auto &func = ft.second;
+      if(!func.ReturnFuncSearched())
+      {
+        for(auto &tft : funcTime){
+          const auto &tfunc = tft.second;
+          if(tfunc.StartPC() < func.ReturnPC() && func.ReturnPC() < tfunc.EndPC())
+          {
+            func.ReturnFunc(tfunc.FuncName());
+            break;
+          }
+        }
+      }
+    }
+  }
 
 public:
   WallTimer(const WallTimer &) = delete;
@@ -54,42 +169,33 @@ public:
   // FunTime vector clear
   void ClearFuncTime()
   {
-    for(auto &func : funcTime){
-      func.second.clear();
-    }
     funcTime.clear();
   }
 
-  void FuncTimeStack(std::string func_name)
+  void StartFuncTime(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc)
   {
     // 要素がある場合は1、ない場合は0
-    if(funcTime.count(func_name)){
-      funcTime[func_name].push_back(std::chrono::system_clock::now());
+    if(funcTime.count(return_pc)){
+      funcTime[return_pc].StartLogger();
     }
     else
     {
-      std::vector<std::chrono::system_clock::time_point> second;
-      second.push_back(std::chrono::system_clock::now());
-      funcTime.insert(std::make_pair(func_name, second));
-
+      funcLogger fl(func, start_pc, return_pc);
+      funcTime.insert(std::make_pair(return_pc, fl));
     }
+  }
+  void EndFuncTime(const uint64_t &start_pc, const uint64_t &end_pc)
+  {
+      funcTime[start_pc].EndLogger(end_pc);
   }
 
   void OutputFuncTime(std::string filename="")
   {
+    parentFunctionMatching();
+
     std::ostringstream ost;
     for(auto &func : funcTime){
-      auto &timeVec = func.second;
-
-      int64_t total = 0;
-      uint   called = 0;
-
-      for(size_t i = 1; i < timeVec.size(); i += 2){
-        auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(timeVec[i - 0] - timeVec[i - 1]).count();
-        total += count;
-        ++called;
-      }
-      ost << "FunctionName, " << func.first << ", total, " << total << ", called, " << called << ", average, " << total / called << std::endl;
+      ost << func.second.OutputBase();
     }
 
     std::string outstr = ost.str();
@@ -134,23 +240,19 @@ std::unique_ptr<WallTimer> WallTimer::wt = nullptr;
 class FuncTimer{
 private:
   FuncTimer() = delete;
-  std::string func;
+  uint64_t startPC;
 
 public:
-  FuncTimer(std::string func_name){
-    func = func_name;
-    WallTimer::GetInstance().FuncTimeStack(func);
+  FuncTimer(const std::string &func_name, const uint64_t &return_pc){
+    startPC = (uint64_t) __builtin_return_address(0);
+    WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
   }
   ~FuncTimer(){
-    WallTimer::GetInstance().FuncTimeStack(func);
+    WallTimer::GetInstance().EndFuncTime(startPC, (uint64_t) __builtin_return_address(0));
   }
 };
 
-// #define FUNC_TIMER std::cout << __builtin_return_address(0) << std::endl;;\
-//                    Dl_info info;\
-//                    dladdr(__builtin_return_address(0), &info);\
-//                    auto temp8234901684 = FuncTimer(__FUNCTION__);
-#define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__);
+#define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__, (uint64_t)__builtin_return_address(0));
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
 #define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
