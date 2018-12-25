@@ -128,7 +128,8 @@ private:
       auto &func = ft.second;
       if(!func.ReturnFuncSearched())
       {
-        for(auto &tft : funcTime){
+        for(auto &tft : funcTime)
+        {
           const auto &tfunc = tft.second;
           if(tfunc.StartPC() < func.ReturnPC() && func.ReturnPC() < tfunc.EndPC())
           {
@@ -147,7 +148,8 @@ public:
   WallTimer & operator=(WallTimer &&) = delete;
 
 
-  // 最後に出力する
+  //todo 確実にデストラクタを呼ぶにはどうすればいいか
+  //todo 例えばCtrl-cで終了した際にも呼びたい
   ~WallTimer()
   {
     __builtin_return_address(0);
