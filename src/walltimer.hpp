@@ -225,8 +225,9 @@ public:
   {
     std::ostringstream ost;
     ost << "RapTime, ";
-    for (size_t i = 1; i < rapTime.size(); ++i) {
-      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i - 0] - rapTime[i - 1]).count();
+    for (size_t i = 0; i < rapTime.size(); ++i) {
+      //auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i - 0] - rapTime[i - 1]).count();
+      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i].time_since_epoch()).count();
       ost << count << ",";
     }
     ost << std::endl;
@@ -255,19 +256,19 @@ public:
 };
 // inline展開を防ぐためにクラス外定義をする
 FuncTimer::FuncTimer(const std::string &func_name, const uint64_t &return_pc){
-  uint64_t startPC = (uint64_t) __builtin_return_address(0);
+  uint64_t startPC = reinterpret_cast<uint64_t>(__builtin_return_address(0));
   returnPC = return_pc;
   WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
 }
 FuncTimer::~FuncTimer(){
-  uint64_t endPC = (uint64_t) __builtin_return_address(0);
+  uint64_t endPC = reinterpret_cast<uint64_t>(__builtin_return_address(0));
   auto &func = WallTimer::GetInstance();
   func.EndFuncTime(returnPC, endPC);
 }
 
 
 #define FUNC_TIMER \
-                uint64_t returnPC128473801 = (uint64_t)__builtin_return_address(0);\
+                uint64_t returnPC128473801 = reinterpret_cast<uint64_t>(__builtin_return_address(0));\
                 auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
 #define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
 #define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
