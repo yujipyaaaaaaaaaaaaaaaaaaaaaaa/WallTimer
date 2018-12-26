@@ -226,8 +226,8 @@ public:
     std::ostringstream ost;
     ost << "RapTime, ";
     for (size_t i = 0; i < rapTime.size(); ++i) {
-      //auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i - 0] - rapTime[i - 1]).count();
-      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i].time_since_epoch()).count();
+      // auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i].time_since_epoch()).count();
+      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i] - rapTime[0]).count();
       ost << count << ",";
     }
     ost << std::endl;
@@ -243,7 +243,6 @@ public:
   }
 
 };
-std::unique_ptr<WallTimer> WallTimer::wt = nullptr;
 
 class FuncTimer{
 private:
