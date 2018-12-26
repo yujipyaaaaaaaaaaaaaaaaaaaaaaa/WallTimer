@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2 -s -DNDEBUG -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g3 -Og -pg")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -s -DNDEBUG -march=native")
 
-add_executable(WallTimer main.cpp)
+add_executable(WallTimer src/walltimer.cpp main.cpp)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

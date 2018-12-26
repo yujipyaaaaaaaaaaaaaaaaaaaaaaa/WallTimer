@@ -10,6 +10,16 @@
 #include <vector>
 #include <memory>
 
+#define FUNC_TIMER \
+                uint64_t returnPC128473801 = reinterpret_cast<uint64_t>(__builtin_return_address(0));\
+                auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
+#define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
+#define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
+#define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
+#define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
+#define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
+
+
 class WallTimer{
 private:
   class funcLogger
@@ -253,26 +263,4 @@ public:
   FuncTimer(const std::string &func_name, const uint64_t &return_pc);
   ~FuncTimer();
 };
-// inline展開を防ぐためにクラス外定義をする
-FuncTimer::FuncTimer(const std::string &func_name, const uint64_t &return_pc){
-  uint64_t startPC = reinterpret_cast<uint64_t>(__builtin_return_address(0));
-  returnPC = return_pc;
-  WallTimer::GetInstance().StartFuncTime(func_name, startPC, return_pc);
-}
-FuncTimer::~FuncTimer(){
-  uint64_t endPC = reinterpret_cast<uint64_t>(__builtin_return_address(0));
-  auto &func = WallTimer::GetInstance();
-  func.EndFuncTime(returnPC, endPC);
-}
-
-
-#define FUNC_TIMER \
-                uint64_t returnPC128473801 = reinterpret_cast<uint64_t>(__builtin_return_address(0));\
-                auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
-#define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
-#define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
-#define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
-#define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
-#define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
-
 #endif // _WALL_TIMER_HPP_
