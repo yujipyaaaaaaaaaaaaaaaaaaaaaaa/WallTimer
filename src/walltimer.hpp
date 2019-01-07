@@ -13,9 +13,8 @@
 #include <memory>
 #include <mutex>
 
-#define FUNC_TIMER \
-                uint64_t returnPC128473801 = reinterpret_cast<uint64_t>(__builtin_return_address(0));\
-                auto temp8234901684 = FuncTimer(__FUNCTION__, returnPC128473801);
+#define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
+#define IDENTITY_FUNC_TIMER(IDENTITY) auto temp8234901684 = FuncTimer(IDENTITY, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
 #define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
 #define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
