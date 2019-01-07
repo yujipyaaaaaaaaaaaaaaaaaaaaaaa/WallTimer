@@ -131,8 +131,8 @@ private:
     static std::string OutputHeader()
     {
       std::ostringstream ost;
-      ost << "| FunctionName | ReturnFunctionName | Last Proc Time[ns] | Average[ns] | Total[ns] | Called |" << std::endl;
-      ost << "|:-------------|:-------------------|-------------------:|------------:|----------:|-------:|" << std::endl;
+      ost << "| FunctionName | ReturnFunctionName | LastTime[ns] | Average[ns] | Total[ns] | Called |" << std::endl;
+      ost << "|:-------------|:-------------------|-------------:|------------:|----------:|-------:|" << std::endl;
       return ost.str();
     }
 
