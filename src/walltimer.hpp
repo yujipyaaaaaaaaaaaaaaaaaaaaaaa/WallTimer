@@ -13,8 +13,9 @@
 #include <memory>
 #include <mutex>
 
-#define FUNC_TIMER auto temp8234901684 = FuncTimer(__FUNCTION__, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
-#define IDENTITY_FUNC_TIMER(IDENTITY) auto temp8234901684 = FuncTimer(IDENTITY, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
+#define FUNC_TIMER_WITH_CALL_NAME(IDENTITY) auto temp8234901684 = FuncTimer(IDENTITY, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
+#define FUNC_TIMER_WITH_RETURN_NAME(RETURN_NAME) auto temp8234901684 = FuncTimer(__FUNCTION__, reinterpret_cast<uint64_t>(__builtin_return_address(0)), RETURN_NAME);
+#define FUNC_TIMER FUNC_TIMER_WITH_CALL_NAME(__FUNCTION__);
 #define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
 #define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
@@ -45,7 +46,7 @@ private:
     const uint64_t & EndPC() const { return endPC; }
     const uint64_t & ReturnPC() const { return returnPC; }
 
-    const bool & ReturnFuncSearched() { return returnFuncSearched; }
+    const bool & ReturnFuncSearched() const { return returnFuncSearched; }
 
     // is this setter?
     void ReturnFunc(std::string func_name)
@@ -157,6 +158,9 @@ private:
             << "|" << total / called
             << "|" << total
             << "|" << called
+            // << "|" << startPC
+            // << "|" << endPC
+            // << "|" << returnPC
             << "|" << std::endl;
       }
       return ost.str();
@@ -228,7 +232,7 @@ public:
     funcTime.clear();
   }
 
-  void StartFuncTime(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc)
+  void StartFuncTime(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc, const std::string &return_func = "")
   {
     // 要素がある場合は1、ない場合は0
     std::lock_guard<std::mutex> lock(mtx_);
@@ -239,6 +243,10 @@ public:
     else
     {
       funcLogger fl(func, start_pc, return_pc);
+      if(return_func != "")
+      {
+        fl.ReturnFunc(return_func);
+      }
       funcTime.insert(std::make_pair(tuple, fl));
     }
   }
@@ -307,7 +315,7 @@ private:
   std::string funcName;
 
 public:
-  FuncTimer(const std::string &func_name, const uint64_t &return_pc);
+  FuncTimer(const std::string &func_name, const uint64_t &return_pc, const std::string &return_func = "");
   ~FuncTimer();
 };
 #endif // _WALL_TIMER_HPP_
