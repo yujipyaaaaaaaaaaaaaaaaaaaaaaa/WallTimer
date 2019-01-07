@@ -6,9 +6,12 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <thread>
+#include <tuple>
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 #define FUNC_TIMER \
                 uint64_t returnPC128473801 = reinterpret_cast<uint64_t>(__builtin_return_address(0));\
@@ -30,10 +33,11 @@ private:
     uint64_t startPC;
     uint64_t endPC;
     uint64_t returnPC;
-    std::vector<std::chrono::system_clock::time_point> startTime;
-    std::vector<std::chrono::system_clock::time_point> endTime;
-    std::vector<uint64_t> diffTime;
+    std::map<std::thread::id, std::vector<std::chrono::system_clock::time_point>> startTime;
+    std::map<std::thread::id, std::vector<std::chrono::system_clock::time_point>> endTime;
+    std::map<std::thread::id, std::vector<uint64_t>> diffTime;
     bool returnFuncSearched;
+    uint64_t lastDiffTime;
 
   // setter and getter
   public:
@@ -87,40 +91,74 @@ private:
 
     void StartLogger()
     {
-      startTime.push_back(std::chrono::system_clock::now());
+      auto thread_id = std::this_thread::get_id();
+      if(startTime.count(thread_id))
+      {
+        startTime[thread_id].push_back(std::chrono::system_clock::now());
+      }
+      else
+      {
+        std::vector<std::chrono::system_clock::time_point> vec;
+        vec.push_back(std::chrono::system_clock::now());
+        startTime.insert(std::make_pair(thread_id, vec));
+      }
     }
 
     void EndLogger(const uint64_t &end_pc)
     {
+      auto thread_id = std::this_thread::get_id();
       endPC = end_pc;
-      endTime.push_back(std::chrono::system_clock::now());
-      auto aaa = endTime.back() - startTime.back();
-      diffTime.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(endTime.back() - startTime.back()).count());
+      if(endTime.count(thread_id))
+      {
+        endTime[thread_id].push_back(std::chrono::system_clock::now());
+        diffTime[thread_id].push_back(std::chrono::duration_cast<std::chrono::nanoseconds>
+          (endTime[thread_id].back() - startTime[thread_id].back()).count());
+      }
+      else
+      {
+        std::vector<std::chrono::system_clock::time_point> end;
+        std::vector<uint64_t> diff;
+        auto now = std::chrono::system_clock::now();
+        end.push_back(now);
+        diff.push_back((now - startTime[thread_id].back()).count());
+        endTime.insert(std::make_pair(thread_id, end));
+        diffTime.insert(std::make_pair(thread_id, diff));
+
+      }
+      lastDiffTime = diffTime[thread_id].back();
     }
 
-    std::string OutputBase()
+    static std::string OutputHeader()
+    {
+      std::ostringstream ost;
+      ost << "| FunctionName | ReturnFunctionName | Last Proc Time[ns] | Average[ns] | Total[ns] | Called |" << std::endl;
+      ost << "|:-------------|:-------------------|-------------------:|------------:|----------:|-------:|" << std::endl;
+      return ost.str();
+    }
+
+    std::string OutputBody()
     {
       std::ostringstream ost;
       uint64_t total = 0;
       uint32_t called = 0;
-      for(const auto &c : diffTime)
+      for(const auto &threadEach : diffTime)
       {
-        total += c;
-        ++called;
+        for(const auto &time : threadEach.second)
+        {
+          total += time;
+          ++called;
+        }
       }
 
       if(called > 0)
       {
-        ost << "FunctionName:" << funcName
-            << ",ReturnFunctionName:" << returnFuncName
-            << ",time:" << diffTime.back()
-            << ",average:" << total / called
-            << ",total:" << total
-            << ",called:" << called
-            // << "," << startPC
-            // << "," << endPC
-            // << "," << returnPC
-            << std::endl;
+        ost << "|" << funcName
+            << "|" << returnFuncName
+            << "|" << lastDiffTime
+            << "|" << total / called
+            << "|" << total
+            << "|" << called
+            << "|" << std::endl;
       }
       return ost.str();
     }
@@ -129,7 +167,9 @@ private:
 
   static std::unique_ptr<WallTimer> wt;
   std::vector<std::chrono::system_clock::time_point> rapTime;
-  std::map<uint64_t, funcLogger> funcTime;
+  std::map<std::tuple<std::string, uint64_t>, funcLogger> funcTime;
+  std::mutex mtx_;
+
   WallTimer(){}
 
   void parentFunctionMatching()
@@ -162,10 +202,8 @@ public:
   //todo 例えばCtrl-cで終了した際にも呼びたい
   ~WallTimer()
   {
-    __builtin_return_address(0);
-    std::cout << "destruction" << std::endl;
-    OutputFuncTime();
-    OutputRapTime();
+    OutputFuncTime("FunctionTime.log");
+    OutputRapTime("RapTime.log");
   }
   // get singlton instance
   static WallTimer & GetInstance()
@@ -180,30 +218,37 @@ public:
   // RapTime vector clear
   void ClearRapTime()
   {
+    std::lock_guard<std::mutex> lock(mtx_);
     rapTime.clear();
   }
 
   // FunTime vector clear
   void ClearFuncTime()
   {
+    std::lock_guard<std::mutex> lock(mtx_);
     funcTime.clear();
   }
 
   void StartFuncTime(const std::string &func, const uint64_t &start_pc, const uint64_t &return_pc)
   {
     // 要素がある場合は1、ない場合は0
-    if(funcTime.count(return_pc)){
-      funcTime[return_pc].StartLogger();
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto tuple = std::tuple<std::string, uint64_t>(func, return_pc);
+    if(funcTime.count(tuple)){
+      funcTime[tuple].StartLogger();
     }
     else
     {
       funcLogger fl(func, start_pc, return_pc);
-      funcTime.insert(std::make_pair(return_pc, fl));
+      funcTime.insert(std::make_pair(tuple, fl));
     }
   }
-  void EndFuncTime(const uint64_t &return_pc, const uint64_t &end_pc)
+
+  void EndFuncTime(const std::string &func, const uint64_t &return_pc, const uint64_t &end_pc)
   {
-      funcTime[return_pc].EndLogger(end_pc);
+    std::lock_guard<std::mutex> lock(mtx_);
+    auto tuple = std::tuple<std::string, uint64_t>(func, return_pc);
+    funcTime[tuple].EndLogger(end_pc);
   }
 
   void OutputFuncTime(std::string filename="")
@@ -211,8 +256,9 @@ public:
     parentFunctionMatching();
 
     std::ostringstream ost;
+    ost << funcLogger::OutputHeader();
     for(auto &func : funcTime){
-      ost << func.second.OutputBase();
+      ost << func.second.OutputBody();
     }
 
     std::string outstr = ost.str();
@@ -228,6 +274,7 @@ public:
 
   void RapTimeStack()
   {
+    std::lock_guard<std::mutex> lock(mtx_);
     rapTime.push_back(std::chrono::system_clock::now());
   }
 
@@ -258,6 +305,7 @@ class FuncTimer{
 private:
   FuncTimer() = delete;
   uint64_t returnPC;
+  std::string funcName;
 
 public:
   FuncTimer(const std::string &func_name, const uint64_t &return_pc);

@@ -55,9 +55,9 @@ int main()
   CLEAR_FUNC_TIMER;
 
   std::thread th1(test4);
+  std::thread th2(test3);
   th1.join();
-
-  std::cout << "main:" << std::this_thread::get_id() << std::endl;
+  th2.join();
 
   return 0;
 }
