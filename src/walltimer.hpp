@@ -16,12 +16,16 @@
 #define FUNC_TIMER_WITH_CALL_NAME(IDENTITY) auto temp8234901684 = FuncTimer(IDENTITY, reinterpret_cast<uint64_t>(__builtin_return_address(0)));
 #define FUNC_TIMER_WITH_RETURN_NAME(RETURN_NAME) auto temp8234901684 = FuncTimer(__FUNCTION__, reinterpret_cast<uint64_t>(__builtin_return_address(0)), RETURN_NAME);
 #define FUNC_TIMER FUNC_TIMER_WITH_CALL_NAME(__FUNCTION__);
-#define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
 #define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
-#define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
+
+#define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
+#define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
 #define OUTPUT_RAP_TIME  WallTimer::GetInstance().OutputRapTime();
 
+#define BLOCK_TIMER auto temp31569175631 = BlockTimer(__FUNCTION__);
+#define BLOCK_START temp31569175631.StartBlock();
+#define BLOCK_CHECK temp31569175631.CheckPoint();
 
 class WallTimer{
 private:
@@ -289,9 +293,9 @@ public:
   {
     std::ostringstream ost;
     ost << "RapTime, ";
-    for (size_t i = 0; i < rapTime.size(); ++i) {
+    for (size_t i = 1; i < rapTime.size(); ++i) {
       // auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i].time_since_epoch()).count();
-      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i] - rapTime[0]).count();
+      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(rapTime[i - 0] - rapTime[i - 1]).count();
       ost << count << ",";
     }
     ost << std::endl;
@@ -308,7 +312,8 @@ public:
 
 };
 
-class FuncTimer{
+class FuncTimer
+{
 private:
   FuncTimer() = delete;
   uint64_t returnPC;
@@ -318,4 +323,69 @@ public:
   FuncTimer(const std::string &func_name, const uint64_t &return_pc, const std::string &return_func = "");
   ~FuncTimer();
 };
+
+class BlockTimer
+{
+private:
+  std::string blockName;
+  std::vector<std::vector<std::chrono::system_clock::time_point>> checkPointTime;
+  uint point;
+
+public:
+  BlockTimer() : blockName("unknow"), point(0) { };
+  BlockTimer(const std::string &name) : point(0){ blockName = name; }
+  ~BlockTimer(){ Output(); }
+  void CheckPoint()
+  {
+    auto time = std::chrono::system_clock::now();
+    if(checkPointTime.size() > point)
+    {
+      checkPointTime[point].push_back(time);
+    }
+    else
+    {
+      std::vector<std::chrono::system_clock::time_point> vec;
+      vec.push_back(time);
+      checkPointTime.push_back(vec);
+    }
+    point++;
+  }
+
+  void StartBlock()
+  {
+    point = 0;
+    CheckPoint();
+  }
+
+  std::string Output(std::string filename="")
+  {
+    std::ostringstream ost;
+    ost << "BlockTime, ";
+    for (size_t i = 1; i < checkPointTime.size(); ++i)
+    {
+      auto &next = checkPointTime[i - 0];
+      auto &bref = checkPointTime[i - 1];
+      uint64_t total = 0;
+      size_t called = 0;
+      for( ; called < next.size() && called < bref.size(); ++called)
+      {
+        total += std::chrono::duration_cast<std::chrono::nanoseconds>(next[called] - bref[called]).count();
+      }
+      ost << total/called << ",";
+    }
+    ost << std::endl;
+    std::string outstr = ost.str();
+    std::cout << outstr;
+
+    if(filename != ""){
+      std::ofstream elapsedlogger;
+      elapsedlogger.open(filename, std::ios::app);
+      elapsedlogger << outstr;
+      elapsedlogger.close();
+    }
+    return outstr;
+  }
+
+};
+
 #endif // _WALL_TIMER_HPP_

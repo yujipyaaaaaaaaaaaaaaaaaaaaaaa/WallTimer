@@ -32,12 +32,16 @@ void test3()
 void test4()
 {
   FUNC_TIMER;
+  BLOCK_TIMER;
   for(int i = 0; i < 100; ++i)
   {
+    BLOCK_START;
     std::thread th1(test1);
     std::thread th2(test2);
+    BLOCK_CHECK;
     th1.join();
     th2.join();
+    BLOCK_CHECK;
  }
 
 
