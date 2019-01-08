@@ -371,7 +371,8 @@ public:
       {
         total += std::chrono::duration_cast<std::chrono::nanoseconds>(next[called] - bref[called]).count();
       }
-      ost << total/called << ",";
+      // ost << total/called << ",";
+      ost << total << ",";
     }
     ost << std::endl;
     std::string outstr = ost.str();
