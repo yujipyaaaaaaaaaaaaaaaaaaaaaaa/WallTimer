@@ -63,5 +63,7 @@ int main()
   th1.join();
   th2.join();
 
+  OUTPUT_FUNC_EACH_PROC_TIME("func_each_time.log")
+
   return 0;
 }

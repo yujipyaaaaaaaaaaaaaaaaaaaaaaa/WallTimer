@@ -18,6 +18,7 @@
 #define FUNC_TIMER FUNC_TIMER_WITH_CALL_NAME(__FUNCTION__);
 #define CLEAR_FUNC_TIMER WallTimer::GetInstance().ClearFuncTime();
 #define OUTPUT_FUNC_TIME WallTimer::GetInstance().OutputFuncTime();
+#define OUTPUT_FUNC_EACH_PROC_TIME(OUTPUT_FILE_NAME) WallTimer::GetInstance().OutputFuncEachTime(OUTPUT_FILE_NAME);
 
 #define CLEAR_RAP_TIMER WallTimer::GetInstance().ClearRapTime();
 #define RAP_TIMER WallTimer::GetInstance().RapTimeStack();
@@ -170,6 +171,22 @@ private:
       return ost.str();
     }
 
+    std::string OutputEachProcTime()
+    {
+      std::ostringstream ost;
+      uint threadNum = 0;
+      for(const auto &threadEach : diffTime)
+      {
+        ost << funcName << " : thread " << threadNum++ << ",";
+        for(const auto &time : threadEach.second)
+        {
+          ost << time << ",";
+        }
+        ost << std::endl;
+      }
+      return ost.str();
+    }
+
   };
 
   static std::unique_ptr<WallTimer> wt;
@@ -268,19 +285,38 @@ public:
 
     std::ostringstream ost;
     ost << funcLogger::OutputHeader();
-    for(auto &func : funcTime){
+    for(auto &func : funcTime)
+    {
       ost << func.second.OutputBody();
     }
 
     std::string outstr = ost.str();
     std::cout << outstr;
-    if(filename != ""){
+    if(filename != "")
+    {
       std::ofstream elapsedlogger;
       elapsedlogger.open(filename, std::ios::app);
       elapsedlogger << outstr;
       elapsedlogger.close();
     }
+  }
 
+  void OutputFuncEachTime(std::string filename)
+  {
+    std::ostringstream ost;
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    ost << std::ctime(&now);
+    for(auto &func : funcTime)
+    {
+      ost << func.second.OutputEachProcTime();
+    }
+    ost << std::endl;
+    std::string outstr = ost.str();
+
+    std::ofstream elapsedlogger;
+    elapsedlogger.open(filename, std::ios::app);
+    elapsedlogger << outstr;
+    elapsedlogger.close();
   }
 
   void RapTimeStack()
