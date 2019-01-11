@@ -396,7 +396,7 @@ public:
   std::string Output(std::string filename="")
   {
     std::ostringstream ost;
-    ost << "BlockTime, ";
+    ost << "BlockName " << blockName << ", ";
     for (size_t i = 1; i < checkPointTime.size(); ++i)
     {
       auto &next = checkPointTime[i - 0];
