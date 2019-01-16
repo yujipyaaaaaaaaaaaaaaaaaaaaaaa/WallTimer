@@ -2,6 +2,8 @@
 #define _WALL_TIMER_HPP_
 
 #include <chrono>
+#include <climits>
+#include <cmath>
 #include <fstream>
 #include <map>
 #include <string>
@@ -136,8 +138,8 @@ private:
     static std::string OutputHeader()
     {
       std::ostringstream ost;
-      ost << "| FunctionName | ReturnFunctionName | LastTime[ns] | Average[ns] | Total[ns] | Called |" << std::endl;
-      ost << "|:-------------|:-------------------|-------------:|------------:|----------:|-------:|" << std::endl;
+      ost << "| FunctionName | ReturnFunctionName | LastTime[ns] | Average[ns] | SD[ns] | Min[ns] | Max[ns] | Total[ns] | Called |" << std::endl;
+      ost << "|:-------------|:-------------------|-------------:|------------:|-------:|--------:|--------:|----------:|-------:|" << std::endl;
       return ost.str();
     }
 
@@ -146,21 +148,32 @@ private:
       std::ostringstream ost;
       uint64_t total = 0;
       uint32_t called = 0;
+      uint64_t sqTotal = 0;
+      uint64_t max = 0;
+      uint64_t min = LLONG_MAX;
       for(const auto &threadEach : diffTime)
       {
         for(const auto &time : threadEach.second)
         {
           total += time;
+          sqTotal += time * time;
+          if(time > max) max = time;
+          if(min > time) min = time;
           ++called;
         }
       }
 
       if(called > 0)
       {
+        uint64_t ave = total / called;
+        uint64_t var = sqTotal / called - ave * ave;
         ost << "|" << funcName
             << "|" << returnFuncName
             << "|" << lastDiffTime
-            << "|" << total / called
+            << "|" << ave
+            << "|" << static_cast<uint64_t>(std::sqrt(var))
+            << "|" << min
+            << "|" << max
             << "|" << total
             << "|" << called
             // << "|" << startPC
