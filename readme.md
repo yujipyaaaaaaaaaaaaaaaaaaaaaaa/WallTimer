@@ -3,41 +3,9 @@ this is C++ Wall time timer.
 
 ## how to use
 
-please read test/test.cpp.
-for function time.
+please see main.cpp.
 
-```c++
-void test1()
-{
-  auto temp = FuncTimer(__FUNCTION__);
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-}
-
-void test2()
-{
-  FUNC_TIMER; // this is defined macro.
-  std::this_thread::sleep_for(std::chrono::seconds(2));
-}
-
-// and call for outpu
-timer.OutputFuncTime();
-```
-
-for process time.
-
-```c++
-
-WallTimer::GetInstance().RapTimeStack();
-any_process();
-RAP_TIMER;  // this is defined macro
-any_process();
-WallTimer::GetInstance().RapTimeStack();
-
-// and call for outpu
-timer.OutputRapTime();
-```
-
-out put example. this is out by test/test.cpp of WallTimerTest.
+output example. 
 ```
 trial:0-0
 FunctionName:test1,ReturnFunctionName:test2,time:100290670,average:100290670,total:100290670,called:1
